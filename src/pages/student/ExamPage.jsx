@@ -8,7 +8,6 @@ import { Spinner } from '../../components/common/UI'
 function useTimer(totalSeconds, onExpire) {
   const [remaining, setRemaining] = useState(totalSeconds)
   const ref = useRef(null)
-
   useEffect(() => {
     if (!totalSeconds) return
     setRemaining(totalSeconds)
@@ -20,7 +19,6 @@ function useTimer(totalSeconds, onExpire) {
     }, 1000)
     return () => clearInterval(ref.current)
   }, [totalSeconds])
-
   const fmt = (s) => {
     const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60
     if (h > 0) return `${h}:${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`
@@ -36,7 +34,7 @@ export default function ExamPage() {
   const [pageState, setPageState] = useState('loading')
   const [examInfo, setExamInfo] = useState(null)
   const [questions, setQuestions] = useState([])
-  const [answers, setAnswers] = useState({})   // { questionId: selected }
+  const [answers, setAnswers] = useState({})
   const [current, setCurrent] = useState(0)
   const [violations, setViolations] = useState(0)
   const [timerSeconds, setTimerSeconds] = useState(0)
@@ -44,19 +42,20 @@ export default function ExamPage() {
   const attemptIdRef   = useRef(null)
   const violationsRef  = useRef(0)
   const submittingRef  = useRef(false)
+  const startCalledRef = useRef(false)  // prevents React StrictMode double-invoke
 
-  // ── Load & start attempt ─────────────────────────────────────────────────
   useEffect(() => {
+    if (startCalledRef.current) return
+    startCalledRef.current = true
+
     const load = async () => {
       try {
         const res = await attemptService.start(examId)
-        // Backend: { data: { attempt, questions, remaining, exam } }
         const d = res.data?.data
-        if (!d) throw new Error('Invalid response from server')
+        if (!d?.attempt) throw new Error('Invalid response from server')
 
         attemptIdRef.current = d.attempt._id
 
-        // Pre-fill any saved answers — backend stores as { question: id, selected: 'A'|null }
         const savedAnswers = {}
         d.attempt.answers?.forEach(({ question, selected }) => {
           if (selected) savedAnswers[question?._id || question] = selected
@@ -75,7 +74,7 @@ export default function ExamPage() {
     load()
   }, [examId])
 
-  // ── Anti-cheat: fullscreen ───────────────────────────────────────────────
+  // Anti-cheat: fullscreen
   useEffect(() => {
     if (pageState !== 'active') return
     document.documentElement.requestFullscreen?.().catch(() => {})
@@ -86,7 +85,7 @@ export default function ExamPage() {
     return () => document.removeEventListener('fullscreenchange', handler)
   }, [pageState])
 
-  // ── Anti-cheat: tab/window ───────────────────────────────────────────────
+  // Anti-cheat: tab / window blur
   useEffect(() => {
     if (pageState !== 'active') return
     const onVisibility = () => { if (document.hidden) logViolation('tab_switch', 'Tab switched') }
@@ -99,14 +98,17 @@ export default function ExamPage() {
     }
   }, [pageState])
 
-  // ── Anti-cheat: right-click / copy ──────────────────────────────────────
+  // Anti-cheat: right-click / copy
   useEffect(() => {
     if (pageState !== 'active') return
     const noCtx  = (e) => { e.preventDefault(); logViolation('right_click', 'Right-click attempted') }
     const noCopy = (e) => { e.preventDefault(); logViolation('copy_attempt', 'Copy attempted') }
     document.addEventListener('contextmenu', noCtx)
     document.addEventListener('copy', noCopy)
-    return () => { document.removeEventListener('contextmenu', noCtx); document.removeEventListener('copy', noCopy) }
+    return () => {
+      document.removeEventListener('contextmenu', noCtx)
+      document.removeEventListener('copy', noCopy)
+    }
   }, [pageState])
 
   const logViolation = useCallback(async (type, details) => {
@@ -114,10 +116,7 @@ export default function ExamPage() {
     violationsRef.current += 1
     setViolations(violationsRef.current)
     const id = attemptIdRef.current
-    if (id) {
-      // POST /attempts/violation → body: { attemptId, type, details }
-      try { await attemptService.logViolation(id, type, details) } catch {}
-    }
+    if (id) { try { await attemptService.logViolation(id, type, details) } catch {} }
     if (violationsRef.current >= 3) {
       toast.error('3 violations — auto-submitting!')
       submitExam(true)
@@ -130,7 +129,6 @@ export default function ExamPage() {
     setAnswers((prev) => ({ ...prev, [questionId]: selected }))
     const id = attemptIdRef.current
     if (!id) return
-    // PATCH /attempts/:attemptId/answer → body: { questionId, selected }
     try { await attemptService.saveAnswer(id, questionId, selected) } catch {}
   }, [])
 
@@ -141,7 +139,6 @@ export default function ExamPage() {
     document.exitFullscreen?.().catch(() => {})
     try {
       const id = attemptIdRef.current
-      // POST /attempts/:attemptId/submit → body: { autoSubmit }
       const res = await attemptService.submit(id, auto)
       const result = res.data?.data
       toast.success('Exam submitted!')
@@ -163,6 +160,8 @@ export default function ExamPage() {
     handleTimerExpire
   )
   const timerWarning = remaining > 0 && remaining <= 300
+
+  const BACKEND_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:5000/api').replace('/api', '')
 
   if (pageState === 'loading') return (
     <div className="min-h-screen flex items-center justify-center">
@@ -195,7 +194,6 @@ export default function ExamPage() {
           <p className="font-display font-bold text-white text-sm">{examInfo?.title}</p>
           <p className="text-white/30 text-xs">{answered}/{total} answered</p>
         </div>
-
         <div className="hidden md:flex flex-1 mx-8 items-center gap-3">
           <div className="flex-1 h-1.5 bg-white/5 rounded-full overflow-hidden">
             <div className="h-full bg-brand-500 rounded-full transition-all duration-300"
@@ -203,7 +201,6 @@ export default function ExamPage() {
           </div>
           <span className="text-white/30 text-xs font-mono">{Math.round(total > 0 ? (answered / total) * 100 : 0)}%</span>
         </div>
-
         <div className="flex items-center gap-3">
           {violations > 0 && (
             <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-accent-red/10 border border-accent-red/20">
@@ -215,8 +212,7 @@ export default function ExamPage() {
             ${timerWarning ? 'bg-accent-red/10 border-accent-red/30 text-accent-red animate-pulse' : 'bg-surface-2 border-white/10 text-white'}`}>
             <Clock size={15} />{timerDisplay}
           </div>
-          <button
-            onClick={() => { if (window.confirm(`Submit? ${answered}/${total} answered.`)) submitExam(false) }}
+          <button onClick={() => { if (window.confirm(`Submit? ${answered}/${total} questions answered.`)) submitExam(false) }}
             className="btn-primary">
             <Send size={14} /> Submit
           </button>
@@ -250,11 +246,19 @@ export default function ExamPage() {
                 <span className="text-xs font-display font-semibold text-white/30">{q.marks} mark{q.marks !== 1 ? 's' : ''}</span>
               </div>
 
-              {q.image && (
-                <img src={q.image} alt="Question" className="rounded-xl mb-6 max-h-64 object-contain bg-surface-2 w-full" />
-              )}
+              <p className="font-display text-white text-lg leading-relaxed mb-6">{q.questionText}</p>
 
-              <p className="font-display text-white text-lg leading-relaxed mb-8">{q.questionText}</p>
+              {/* Question image from backend */}
+              {q.image && (
+                <div className="mb-6 rounded-xl overflow-hidden bg-surface-2 border border-white/5">
+                  <img
+                    src={q.image.startsWith('http') ? q.image : `${BACKEND_BASE}${q.image}`}
+                    alt="Question diagram"
+                    className="w-full max-h-72 object-contain p-2"
+                    onError={(e) => { e.target.style.display = 'none' }}
+                  />
+                </div>
+              )}
 
               <div className="space-y-3">
                 {q.options?.map((opt) => {
