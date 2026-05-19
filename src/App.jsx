@@ -18,6 +18,7 @@ import CreateExam from './pages/teacher/CreateExam'
 import ManageExam from './pages/teacher/ManageExam'
 import ExamQuestions from './pages/teacher/ExamQuestions'
 import ClassResults from './pages/teacher/ClassResults'
+import GradeOpenEnded from './pages/teacher/GradeOpenEnded'
 
 // Admin pages
 import AdminDashboard from './pages/admin/Dashboard'
@@ -88,6 +89,7 @@ export default function App() {
           <Route path="/teacher/exams/:examId/edit" element={<ProtectedRoute roles={['teacher']}><ManageExam /></ProtectedRoute>} />
           <Route path="/teacher/exams/:examId/questions" element={<ProtectedRoute roles={['teacher']}><ExamQuestions /></ProtectedRoute>} />
           <Route path="/teacher/results" element={<ProtectedRoute roles={['teacher']}><ClassResults /></ProtectedRoute>} />
+          <Route path="/teacher/grade" element={<ProtectedRoute roles={['teacher']}><GradeOpenEnded /></ProtectedRoute>} />
 
           {/* Admin */}
           <Route path="/admin" element={<ProtectedRoute roles={['admin']}><AdminDashboard /></ProtectedRoute>} />

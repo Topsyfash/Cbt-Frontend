@@ -88,6 +88,8 @@ export const attemptService = {
     api.post('/attempts/violation', { attemptId, type, details }),
   myAttempts: () => api.get('/attempts/my'),
   getOne: (id) => api.get(`/attempts/${id}`),
+  saveOpenAnswer: (attemptId, questionId, openAnswer) =>
+    api.patch(`/attempts/${attemptId}/open-answer`, { questionId, openAnswer }),
 }
 
 // ─── Results ──────────────────────────────────────────────────────────────────
@@ -111,4 +113,13 @@ export const analyticsService = {
   admin: () => api.get('/analytics/admin'),
   teacher: () => api.get('/analytics/teacher'),
   student: () => api.get('/analytics/student'),
+}
+
+// ─── Grading (teacher grades open-ended answers) ───────────────────────────
+// PATCH /attempts/:attemptId/grade/:questionId → body: { teacherScore, teacherFeedback }
+// GET   /attempts/pending-grading              → { data: { attempts } }
+export const gradingService = {
+  getPending: () => api.get('/attempts/pending-grading'),
+  gradeAnswer: (attemptId, questionId, data) =>
+    api.patch(`/attempts/${attemptId}/grade/${questionId}`, data),
 }

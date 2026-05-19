@@ -68,33 +68,62 @@ export default function ResultDetail() {
             {answeredQuestions.map((ans, i) => {
               const q = ans.question
               if (!q?.questionText) return null
+              const isOpen = q.questionType === 'open_ended'
               const correct = ans.isCorrect
               return (
-                <div key={i} className={`card p-6 border ${correct ? 'border-accent-green/15' : 'border-accent-red/15'}`}>
+                <div key={i} className={`card p-6 border ${
+                  isOpen
+                    ? ans.isGraded ? 'border-accent-purple/20' : 'border-accent-amber/20'
+                    : correct ? 'border-accent-green/15' : 'border-accent-red/15'
+                }`}>
                   <div className="flex items-start gap-3 mb-4">
-                    {correct
-                      ? <CheckCircle size={18} className="text-accent-green flex-shrink-0 mt-0.5" />
-                      : <XCircle   size={18} className="text-accent-red   flex-shrink-0 mt-0.5" />
+                    {isOpen
+                      ? <span className="badge badge-purple flex-shrink-0 mt-0.5">✏️ Open</span>
+                      : correct
+                        ? <CheckCircle size={18} className="text-accent-green flex-shrink-0 mt-0.5" />
+                        : <XCircle   size={18} className="text-accent-red   flex-shrink-0 mt-0.5" />
                     }
                     <p className="font-display text-white text-sm leading-relaxed">
                       <span className="text-white/30 mr-2">Q{i+1}.</span>{q.questionText}
                     </p>
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2 pl-7">
-                    {q.options?.map((opt) => {
-                      let cls = 'bg-surface-2 border-white/5 text-white/50'
-                      if (opt.label === q.correctAnswer)                     cls = 'bg-accent-green/10 border-accent-green/30 text-accent-green'
-                      else if (opt.label === ans.selected && !correct)        cls = 'bg-accent-red/10 border-accent-red/30 text-accent-red'
-                      return (
-                        <div key={opt.label} className={`flex items-center gap-3 px-3 py-2.5 rounded-lg border text-xs ${cls}`}>
-                          <span className="font-mono font-bold w-5">{opt.label}</span>
-                          <span>{opt.text}</span>
-                          {opt.label === q.correctAnswer && <CheckCircle size={12} className="ml-auto" />}
+                  {!isOpen && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 pl-7">
+                      {q.options?.map((opt) => {
+                        let cls = 'bg-surface-2 border-white/5 text-white/50'
+                        if (opt.label === q.correctAnswer) cls = 'bg-accent-green/10 border-accent-green/30 text-accent-green'
+                        else if (opt.label === ans.selected && !correct) cls = 'bg-accent-red/10 border-accent-red/30 text-accent-red'
+                        return (
+                          <div key={opt.label} className={`flex items-center gap-3 px-3 py-2.5 rounded-lg border text-xs ${cls}`}>
+                            <span className="font-mono font-bold w-5">{opt.label}</span>
+                            <span>{opt.text}</span>
+                            {opt.label === q.correctAnswer && <CheckCircle size={12} className="ml-auto" />}
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+                  {isOpen && (
+                    <div className="pl-7 space-y-3">
+                      <div className="bg-surface-2 rounded-lg px-3 py-3">
+                        <p className="text-xs text-white/30 mb-1.5 font-display font-semibold">Your Answer</p>
+                        <p className="text-white/70 text-sm leading-relaxed whitespace-pre-wrap">
+                          {ans.openAnswer?.trim() || <span className="italic text-white/20">No answer provided</span>}
+                        </p>
+                      </div>
+                      {ans.isGraded ? (
+                        <div className="flex items-center gap-4 flex-wrap">
+                          <span className="badge badge-purple">Score: {ans.teacherScore}/{q.marks}</span>
+                          {ans.teacherFeedback && (
+                            <p className="text-white/40 text-xs italic">"{ans.teacherFeedback}"</p>
+                          )}
                         </div>
-                      )
-                    })}
-                  </div>
-                  {q.explanation && (
+                      ) : (
+                        <span className="badge badge-amber">Awaiting teacher review</span>
+                      )}
+                    </div>
+                  )}
+                  {!isOpen && q.explanation && (
                     <p className="mt-3 pl-7 text-xs text-white/30 italic border-t border-white/5 pt-3">💡 {q.explanation}</p>
                   )}
                 </div>

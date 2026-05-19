@@ -11,13 +11,9 @@ import {
 } from 'lucide-react'
 
 const BACKEND_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:5000/api').replace('/api', '')
-const resolveImage = (path) => {
-  if (!path) return null
-  if (path.startsWith('http') || path.startsWith('blob')) return path
-  return `${BACKEND_BASE}${path}`
-}
 
 const emptyQ = {
+  questionType: 'mcq',
   questionText: '',
   options: [
     { label: 'A', text: '' },
@@ -28,13 +24,17 @@ const emptyQ = {
   correctAnswer: 'A',
   marks: 1,
   explanation: '',
+  wordLimit: '',
+  sampleAnswer: '',
 }
 
-// ─── Question Form (used for add / edit single question) ─────────────────────
 function QuestionForm({ initial, onSave, onCancel, saving }) {
   const [form, setForm] = useState(() => initial ? {
     ...initial,
+    questionType: initial.questionType || 'mcq',
     options: initial.options || emptyQ.options,
+    wordLimit: initial.wordLimit || '',
+    sampleAnswer: initial.sampleAnswer || '',
   } : { ...emptyQ })
   const [imageFile, setImageFile] = useState(null)
   const [imagePreview, setImagePreview] = useState(initial?.image || null)
@@ -43,7 +43,10 @@ function QuestionForm({ initial, onSave, onCancel, saving }) {
   useEffect(() => {
     setImagePreview(initial?.image || null)
     setImageFile(null)
-   }, [initial?._id])
+  }, [initial?._id])
+
+  const isOpen = form.questionType === 'open_ended'
+
   const setOpt = (idx, val) => {
     const opts = [...form.options]
     opts[idx] = { ...opts[idx], text: val }
@@ -65,58 +68,100 @@ function QuestionForm({ initial, onSave, onCancel, saving }) {
 
   const validate = () => {
     if (!form.questionText.trim()) { toast.error('Question text required'); return false }
-    if (form.options.some(o => !o.text.trim())) { toast.error('All options are required'); return false }
+    if (!isOpen && form.options.some(o => !o.text.trim())) { toast.error('All options are required'); return false }
     return true
   }
 
   return (
     <div className="space-y-4">
+      {/* Question type toggle */}
+      <div>
+        <label className="label">Question Type</label>
+        <div className="flex gap-2">
+          {[
+            { value: 'mcq', label: '📋 Multiple Choice' },
+            { value: 'open_ended', label: '✏️ Open Ended' },
+          ].map(({ value, label }) => (
+            <button key={value} type="button"
+              onClick={() => setForm({ ...form, questionType: value })}
+              className={`flex-1 py-2.5 rounded-xl text-sm font-display font-semibold border transition-all
+                ${form.questionType === value
+                  ? 'bg-brand-600/20 border-brand-500/40 text-brand-300'
+                  : 'bg-surface-2 border-white/10 text-white/40 hover:text-white/60'}`}>
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
+
       <FormField label="Question Text *">
         <textarea className="input resize-none" rows={3} placeholder="Enter the question..."
           value={form.questionText} onChange={(e) => setForm({ ...form, questionText: e.target.value })} />
       </FormField>
 
-      <FormField label="Options *" hint="Click the radio button to mark the correct answer">
-        <div className="space-y-2">
-          {form.options.map((opt, i) => (
-            <div key={opt.label} className="flex items-center gap-3">
-              <span className="w-7 h-7 rounded-lg bg-surface-2 flex items-center justify-center text-xs font-mono font-bold text-white/50 flex-shrink-0">
-                {opt.label}
-              </span>
-              <input className="input flex-1" placeholder={`Option ${opt.label}`}
-                value={opt.text} onChange={(e) => setOpt(i, e.target.value)} />
-              <input type="radio" name="correct" checked={form.correctAnswer === opt.label}
-                onChange={() => setForm({ ...form, correctAnswer: opt.label })}
-                className="accent-brand-500 w-4 h-4 cursor-pointer flex-shrink-0" title="Correct answer" />
-            </div>
-          ))}
-        </div>
-      </FormField>
+      {/* MCQ options */}
+      {!isOpen && (
+        <FormField label="Options *" hint="Click the radio button to mark the correct answer">
+          <div className="space-y-2">
+            {form.options.map((opt, i) => (
+              <div key={opt.label} className="flex items-center gap-3">
+                <span className="w-7 h-7 rounded-lg bg-surface-2 flex items-center justify-center text-xs font-mono font-bold text-white/50 flex-shrink-0">
+                  {opt.label}
+                </span>
+                <input className="input flex-1" placeholder={`Option ${opt.label}`}
+                  value={opt.text} onChange={(e) => setOpt(i, e.target.value)} />
+                <input type="radio" name="correct" checked={form.correctAnswer === opt.label}
+                  onChange={() => setForm({ ...form, correctAnswer: opt.label })}
+                  className="accent-brand-500 w-4 h-4 cursor-pointer flex-shrink-0" title="Correct answer" />
+              </div>
+            ))}
+          </div>
+        </FormField>
+      )}
+
+      {/* Open-ended fields */}
+      {isOpen && (
+        <>
+          <FormField label="Word Limit (optional)" hint="Maximum words the student can write">
+            <input type="number" className="input" min={10} placeholder="e.g. 200"
+              value={form.wordLimit || ''} onChange={(e) => setForm({ ...form, wordLimit: e.target.value })} />
+          </FormField>
+          <FormField label="Sample / Model Answer (optional)" hint="Only visible to you during grading">
+            <textarea className="input resize-none" rows={3} placeholder="Write the expected answer..."
+              value={form.sampleAnswer || ''} onChange={(e) => setForm({ ...form, sampleAnswer: e.target.value })} />
+          </FormField>
+        </>
+      )}
 
       <div className="grid grid-cols-2 gap-4">
         <FormField label="Marks">
           <input type="number" className="input" min={0.5} max={20} step={0.5}
             value={form.marks} onChange={(e) => setForm({ ...form, marks: Number(e.target.value) })} />
         </FormField>
-        <FormField label="Correct Answer">
-          <select className="input" value={form.correctAnswer}
-            onChange={(e) => setForm({ ...form, correctAnswer: e.target.value })}>
-            {form.options.map(o => <option key={o.label} value={o.label}>{o.label}</option>)}
-          </select>
-        </FormField>
+        {!isOpen && (
+          <FormField label="Correct Answer">
+            <select className="input" value={form.correctAnswer}
+              onChange={(e) => setForm({ ...form, correctAnswer: e.target.value })}>
+              {form.options.map(o => <option key={o.label} value={o.label}>{o.label}</option>)}
+            </select>
+          </FormField>
+        )}
       </div>
 
-      <FormField label="Explanation (optional)">
-        <input className="input" placeholder="Shown to students after submission..."
-          value={form.explanation || ''} onChange={(e) => setForm({ ...form, explanation: e.target.value })} />
-      </FormField>
+      {!isOpen && (
+        <FormField label="Explanation (optional)">
+          <input className="input" placeholder="Shown to students after submission..."
+            value={form.explanation || ''} onChange={(e) => setForm({ ...form, explanation: e.target.value })} />
+        </FormField>
+      )}
 
       {/* Image upload */}
       <div>
         <label className="label">Question Image (optional)</label>
         {imagePreview ? (
           <div className="relative rounded-xl overflow-hidden bg-surface-2 border border-white/10">
-            <img src= {resolveImage(imagePreview)}
+            <img src={imagePreview.startsWith('http') || imagePreview.startsWith('blob')
+              ? imagePreview : `${BACKEND_BASE}${imagePreview}`}
               alt="Preview" className="w-full max-h-48 object-contain p-2" />
             <button onClick={removeImage}
               className="absolute top-2 right-2 p-1.5 rounded-lg bg-surface/80 hover:bg-accent-red/20 text-white/60 hover:text-accent-red transition-colors">
@@ -512,6 +557,9 @@ export default function ExamQuestions() {
                   )}
                 </div>
                 <div className="flex items-center gap-1 flex-shrink-0">
+                  <span className={`badge mr-1 ${q.questionType === 'open_ended' ? 'badge-purple' : 'badge-blue'}`}>
+                    {q.questionType === 'open_ended' ? '✏️ Open' : '📋 MCQ'}
+                  </span>
                   <span className="badge badge-blue mr-1">{q.marks}mk</span>
                   <button onClick={() => setEditQ(q)}
                     className="p-2 rounded-lg hover:bg-white/5 text-white/30 hover:text-white transition-colors">
@@ -567,7 +615,7 @@ export default function ExamQuestions() {
               className="absolute -top-4 -right-4 p-2 rounded-full bg-surface-1 border border-white/10 text-white/60 hover:text-white transition-colors z-10">
               <X size={18} />
             </button>
-            <img src={resolveImage(previewImage)} alt="Question" className="w-full rounded-2xl border border-white/10" />
+            <img src={previewImage} alt="Question" className="w-full rounded-2xl border border-white/10" />
           </div>
         </div>
       )}

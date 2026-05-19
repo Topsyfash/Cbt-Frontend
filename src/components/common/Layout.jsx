@@ -3,39 +3,39 @@ import { NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import {
   LayoutDashboard, FileText, Users, BookOpen, BarChart2,
-  LogOut, Menu, X, ChevronRight, GraduationCap, Settings,
-  ClipboardList, Award
+  LogOut, Menu, GraduationCap, ChevronRight, Award,
+  ClipboardList, AlignLeft
 } from 'lucide-react'
 
 const navConfig = {
   student: [
-    { to: '/student', label: 'Dashboard', icon: LayoutDashboard, end: true },
+    { to: '/student',         label: 'Dashboard',  icon: LayoutDashboard, end: true },
     { to: '/student/results', label: 'My Results', icon: Award },
   ],
   teacher: [
-    { to: '/teacher', label: 'Dashboard', icon: LayoutDashboard, end: true },
-    { to: '/teacher/exams/create', label: 'Create Exam', icon: FileText },
-    { to: '/teacher/results', label: 'Class Results', icon: BarChart2 },
+    { to: '/teacher',                  label: 'Dashboard',    icon: LayoutDashboard, end: true },
+    { to: '/teacher/exams/create',     label: 'Create Exam',  icon: FileText },
+    { to: '/teacher/results',          label: 'Class Results',icon: BarChart2 },
+    { to: '/teacher/grade',            label: 'Grade Answers',icon: AlignLeft },
   ],
   admin: [
-    { to: '/admin', label: 'Dashboard', icon: LayoutDashboard, end: true },
-    { to: '/admin/users', label: 'Manage Users', icon: Users },
-    { to: '/admin/classes', label: 'Classes', icon: BookOpen },
-    { to: '/admin/subjects', label: 'Subjects', icon: ClipboardList },
-    { to: '/admin/analytics', label: 'Analytics', icon: BarChart2 },
+    { to: '/admin',           label: 'Dashboard',  icon: LayoutDashboard, end: true },
+    { to: '/admin/users',     label: 'Manage Users', icon: Users },
+    { to: '/admin/classes',   label: 'Classes',    icon: BookOpen },
+    { to: '/admin/subjects',  label: 'Subjects',   icon: ClipboardList },
+    { to: '/admin/analytics', label: 'Analytics',  icon: BarChart2 },
   ],
 }
 
 const roleColors = {
   student: 'text-accent-green',
   teacher: 'text-accent-purple',
-  admin: 'text-accent-amber',
+  admin:   'text-accent-amber',
 }
-
 const roleBadgeColors = {
   student: 'badge-green',
   teacher: 'badge-purple',
-  admin: 'badge-amber',
+  admin:   'badge-amber',
 }
 
 export default function Layout({ children }) {
@@ -50,7 +50,7 @@ export default function Layout({ children }) {
     navigate('/login')
   }
 
-  const Sidebar = ({ mobile = false }) => (
+  const SidebarContent = ({ mobile = false }) => (
     <aside className={`
       flex flex-col h-full bg-surface-1 border-r border-white/5
       ${mobile ? 'w-72' : 'w-64 hidden lg:flex'}
@@ -129,14 +129,14 @@ export default function Layout({ children }) {
   return (
     <div className="flex h-screen overflow-hidden">
       {/* Desktop sidebar */}
-      <Sidebar />
+      <SidebarContent />
 
-      {/* Mobile sidebar overlay */}
+      {/* Mobile overlay */}
       {mobileOpen && (
         <div className="fixed inset-0 z-50 lg:hidden flex">
           <div className="absolute inset-0 bg-black/60" onClick={() => setMobileOpen(false)} />
           <div className="relative z-10">
-            <Sidebar mobile />
+            <SidebarContent mobile />
           </div>
         </div>
       )}
@@ -151,15 +151,12 @@ export default function Layout({ children }) {
             </div>
             <span className="font-display font-bold text-white text-sm">CBT System</span>
           </div>
-          <button
-            onClick={() => setMobileOpen(true)}
-            className="p-2 rounded-lg hover:bg-white/5 text-white/60"
-          >
+          <button onClick={() => setMobileOpen(true)} className="p-2 rounded-lg hover:bg-white/5 text-white/60">
             <Menu size={20} />
           </button>
         </header>
 
-        {/* Page content */}
+        {/* Page */}
         <main className="flex-1 overflow-y-auto">
           <div className="max-w-7xl mx-auto p-6 lg:p-8 animate-fade-in">
             {children}
