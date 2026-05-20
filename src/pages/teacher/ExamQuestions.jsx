@@ -423,10 +423,13 @@ export default function ExamQuestions() {
         // Backend accepts multipart/form-data for image upload
         const fd = new FormData()
         fd.append('questionText', form.questionText)
+        fd.append('questionType', form.questionType || "mcq")
         fd.append('options', JSON.stringify(form.options))
         fd.append('correctAnswer', form.correctAnswer)
         fd.append('marks', form.marks)
         fd.append('explanation', form.explanation || '')
+        fd.append('wordLimit', form.wordLimit || '')
+        fd.append('sampleAnswer', form.sampleAnswer || '')
         fd.append('image', imageFile)
         await api.post(`/questions/exam/${examId}`, fd, { headers: { 'Content-Type': 'multipart/form-data' } })
       } else {
@@ -446,11 +449,14 @@ export default function ExamQuestions() {
     try {
       if (imageFile) {
         const fd = new FormData()
-        fd.append('questionText', form.questionText)
+         fd.append('questionText', form.questionText)
+        fd.append('questionType', form.questionType || "mcq")
         fd.append('options', JSON.stringify(form.options))
         fd.append('correctAnswer', form.correctAnswer)
         fd.append('marks', form.marks)
         fd.append('explanation', form.explanation || '')
+        fd.append('wordLimit', form.wordLimit || '')
+        fd.append('sampleAnswer', form.sampleAnswer || '')
         fd.append('image', imageFile)
         await api.put(`/questions/${editQ._id}`, fd, { headers: { 'Content-Type': 'multipart/form-data' } })
       } else {

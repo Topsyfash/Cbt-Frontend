@@ -50,9 +50,16 @@ function ExamCard({ exam, onStart }) {
         <p className="text-white/30 text-xs border-t border-white/5 pt-3 line-clamp-2">{exam.instructions}</p>
       )}
       {alreadyAttempted ? (
-        <div className="btn-secondary w-full justify-center opacity-60 cursor-default">
+        <div className="btn-secondary w-full justify-center opacity-60 cursor-default text-sm">
           Already submitted — {Math.round(exam.attempt.percentage ?? 0)}%
         </div>
+      ) : exam.attempt?.status === 'in_progress' ? (
+        // Laptop shutdown / disconnection — resume the existing attempt
+        <button onClick={() => onStart(exam)}
+          className="w-full mt-auto flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-display font-semibold text-sm
+            bg-accent-amber/10 border border-accent-amber/30 text-accent-amber hover:bg-accent-amber/20 transition-all active:scale-95">
+          🔄 Resume Exam
+        </button>
       ) : (
         <button onClick={() => onStart(exam)} disabled={!isActive}
           className="btn-primary w-full mt-auto disabled:opacity-40">

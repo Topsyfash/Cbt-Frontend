@@ -102,11 +102,20 @@ export default function ExamPage() {
         const savedMcq = {}, savedOpen = {}
         d.attempt.answers?.forEach(({ question, selected, openAnswer }) => {
           const id = question?._id || question
-          if (selected)    savedMcq[id]  = selected
-          if (openAnswer)  savedOpen[id] = openAnswer
+          if (selected)   savedMcq[id]  = selected
+          if (openAnswer) savedOpen[id] = openAnswer
         })
         setMcqAnswers(savedMcq)
         setOpenAnswers(savedOpen)
+
+        // Detect resume — if any answers already saved, this is a resumed session
+        const isResuming = Object.keys(savedMcq).length > 0 || Object.keys(savedOpen).length > 0
+        if (isResuming) {
+          toast('Session resumed — your previous answers have been restored.', {
+            icon: '🔄', duration: 5000
+          })
+        }
+
         setTimerSeconds(d.remaining || (d.exam?.duration ?? 60) * 60)
         setExamInfo(d.exam)
         setPageState('active')
